@@ -83,7 +83,13 @@ const app = Fastify({ logger: true, trustProxy: true });
 app.addHook('onRequest', async (req, reply) => {
   const host = parseHost(req.headers.host);
   if (!isAllowedHost(host, ALLOWED_HOSTS)) {
-    reply.code(400).send({ error: 'Host header not allowed' });
+    // 把被拒的 host 一起回显，反代调试时可一眼看出"反代后端实际传过来的 Host 是什么"
+    // —— 决定是去白名单加这个 host，还是修反代让它透传客户端 Host。不泄露敏感信息。
+    reply.code(400).send({
+      error: 'Host header not allowed',
+      host: host || null,
+      hint: '反代部署请把对外域名加入 PANEL_ALLOWED_HOSTS（.env，逗号分隔多个域名），或修反代让 Host 头透传',
+    });
   }
 });
 
